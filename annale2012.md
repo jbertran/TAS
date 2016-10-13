@@ -52,6 +52,8 @@ System.out.println(a2);
 * b2 = [200;[100]]
 * a2 = [200;[100]]
 
+## Q2
+
 ```java
 A a3 = a1.max(a2);
 A a4 = a2.max(a1);
@@ -66,7 +68,9 @@ System.out.println(b4);
 * a3 = [400]
 * a4 = [400]
 * b3 = [200, (100)]
-* b4 = 
+* b4 = [200, (100)]
+
+## Q3
 
 ```java
 A a5 = b2.max ( b1 ) ;
