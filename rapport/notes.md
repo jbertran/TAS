@@ -17,16 +17,55 @@ Avantages de la compression d'ordre supérieur:
 * Les données compressées peuvent être manipulées _sans décompression_.
 * On peut émuler facilement d'autres schémas de compression.
 
-Pour exploiter la puissance de compression de ces idées, il est nécessaire de savoir encoder de manière compacte des lambda-termes.
+Pour exploiter la puissance de compression de ces idées, il est nécessaire de savoir encoder de manière compacte des lambda-termes. On se restreint au
+lambda-calcul simplement typé puisqu'il nous permet de vérifier l'intégrité du payload en vérifiant si le typage est correct.
+
+On évite d'encoder simplement les programmes en caractères les représentant puisque ceci rend possible l'encodage de termes mal formés.
+
+Aucun des travaux d'étude de compression de lambda-termes simplement typés ne sont appropriés pour la compression d'ordre supérieur que vise l'article.
 
 ## Points principaux
 
-### Encodage de De Bruijn
+### Lambda calcul simplement typé
+
+* Garantie de terminaison des programmes si ils sont bien typés
+* On peut laisser tomber des caractères dont une représentation classique aurait besoin, puisqu'on peut les retrouver à partir des informations de
+  type - typiquement, `(` et `)` sont redondants avec les informations de type contenues dans l'encodage.
+  Par exemple, on peut faire la différence entre `a (b c)` et `(a b) c)`.
+  
+#### Typage
+
+```
+tau ::= o
+      | tau_1 -> tau_2
+```
+
+`o` est l'unique type de base dans ce cas précis, dénotant le type de la structure arborescente qu'on cherche à compresser.
+
+#### Simplification / Jugements
+
+```
+M ::= n
+    | lambda : tau.M
+    | M_1 M_2
+```
+
+Un lambda-terme est:
+
+* Un index de de Bruijn
+* Une abstraction sur une variable de type tau
+* Une application de $ M_1 $ à $ M_2 $
+
+Un index de de Bruijn décrit la distance entre la variable typée et l'abstraction qui la lie, en nombre d'abstractions.
+
+### But du papier
+
+Avec $ \Tau $ les triplets $(\Gamma, M, \tau)$: 
+
+Trouver un couple de fonctions $ (Enc, Dec) \in (\Tau \rightarrow {0, 1}*) \cross ({0, 1}* \rightharpoonup \Tau) $
 
 ### Première approche: codage sans étiquette de lambda-termes basé sur les types
 
 ### Deuxième approche: codage basé sur des grammaires
 
 ### Travaux liés
-
-## Discussion
