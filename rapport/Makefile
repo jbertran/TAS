@@ -7,3 +7,6 @@ rapport: rapport.tex rapport.bib
 	bibtex rapport
 	pdflatex rapport.tex
 	pdflatex rapport.tex
+
+clean:
+	rm *.log *.aux *.bbl *.blg *.out *.toc
