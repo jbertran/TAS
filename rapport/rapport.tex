@@ -79,7 +79,7 @@ obtenir une représentation compacte d'un programme fonctionnel, adapté à
 la représentation de structures de données arborescentes.
 
 Cet article fait suite aux travaux de Kobayashi et al. sur l'encodage de
-structures arborescentes en un programme fonctionnel (i.e.~traduisible
+structures arborescentes en un programme fonctionnel (traduisible
 en \(\lambda\)-termes) représentant cette structure \cite{kobayashi2012functional}.
 
 La compression d'ordre supérieur présente plusieurs avantages:
@@ -103,15 +103,15 @@ avec l'encodage d'ordre supérieur, il est nécéssaire de minimiser le surcoût
 induit par la représentation de $\lambda$-termes pour pouvoir rivaliser avec
 les algorithmes 'classiques' de compression.
 
-Aucun des travaux d'étude de compression de \(\lambda\)-termes
-simplement typés déjà réalisés ne sont appropriés pour la compression
-d'ordre supérieur que vise l'article.
+Des travaux d'étude de compression de \(\lambda\)-termes
+simplement typés ont déjà été réalisés par Tromp \cite{tromp2007binary} ainsi que
+Vytiniotis et Kennedy \cite{vytiniotis2010functional, kennedy2012every}. Takeda et al.
+prétendent que ces travaux sont inadaptés à la recherche de qualité de compression visée.
+Nous verrons par la suite que la qualité de compression de l'algorithme présenté est
+effectivement bien supérieure à celle des travaux déjà effectués.
 
-Ainsi, le but de l'article est de trouver un couple de fonctions
-\((Enc, Dec) \in (\tau \rightarrow {0, 1}*) \times ({0, 1}* \rightharpoonup \tau)\)
-
-
-Avec \(\tau\) les triplets \((\Gamma, M, \tau)\):
+Ainsi, le but de l'article est de trouver un couple de fonctions suivantes, avec \(\mathcal{J}\) les triplets \((\Gamma, M, \tau)\):
+$$(Enc, Dec) \in (\mathcal{J} \rightarrow {0, 1}*) \times ({0, 1}* \rightharpoonup \mathcal{J})$$
 
 
 \section{Rappels}\label{conventions-de-larticle}
@@ -120,8 +120,7 @@ Avec \(\tau\) les triplets \((\Gamma, M, \tau)\):
 
 \subsubsection{Typage}\label{typage}
 
-Le \(lambda\)-calcul simplement typé possède les règles de typage
-suivantes:
+Le \(lambda\)-calcul simplement typé possède la syntaxe de typage suivante:
 
 \begin{grammar}
 
@@ -201,6 +200,8 @@ prouver leur fondement.
 
 \subsubsection{Exemples}\label{exemples}
 
+\paragraph{Application simple}
+
 Comme premier exemple, nous prenons le terme défini par:
 
 \begin{itemize}
@@ -253,6 +254,8 @@ partir de cette forme réduite.
 \item
   On obtient donc la décompression du terme en \(0(011)(011)\).
 \end{enumerate}
+
+\paragraph{Abstractions}
 
 Un deuxième exemple permet de voir la manière dont le type des abstractions est géré
 par l'encodage proposé par l'article, avec le terme:
