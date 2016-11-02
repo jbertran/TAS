@@ -309,14 +309,48 @@ un environnement de typage \textbf{TEnv} et une suite de
 \(\lambda\)-termes \(\Lambda\), en application partielle en un nombre
 indéterminé de \textbf{Sym}, l'alphabet de codage employé.
 
-\(EncS \in \textbf{TEnv} \times \Lambda \rightharpoonup \textbf{Sym}^*:\)
-\newline
-\(EncS(\Gamma, n) = n\) \newline
-\(EncS(\Gamma, \lambda:\tau_0.M) = \lambda_{typeOf(\Gamma, \lambda:\tau_0.M))}.EncS(\tau_0 \cdot \Gamma, M)\)
-\newline
-\(EncS(\Gamma, M_1, M_2) = EncS(\Gamma, M_1) \cdot EncS(\Gamma, M_1)\)
+\begin{lstlisting}
+EncS$ \in \textbf{TEnv} \times \Lambda \rightharpoonup \textbf{Sym}^*:$
+EncS$(\Gamma, n) = n$
+EncS$(\Gamma, \lambda:\tau_0.M) = \lambda_{typeOf(\Gamma, \lambda:\tau_0.M))}.EncS(\tau_0 \cdot \Gamma, M)$
+EncS$(\Gamma, M_1, M_2) = EncS(\Gamma, M_1) \cdot EncS(\Gamma, M_1)$
+\end{lstlisting}
 
 \paragraph{Décodage}\label{duxe9codage}
+
+La fonction de décodage est définie récursivement comme une fonction d'un triplet séquence de symboles,
+environnement et type du $\lambda$-terme en application partielle dans un couple $\lambda$-terme et séquence
+de symboles restante.
+
+Plus formellement:
+
+\begin{lstlisting}
+  DecS$ \in \textbf{Sym}^* \times \textbf{TEnv} \times \textbf{Ty} \rightharpoonup \Lambda \times \textbf{Sym}^*$
+  DecS$(\epsilon, \Gamma, \tau) = \textbf{fail}$
+     if $\Gamma(n)$ is of the form $\tau_1 \rightarrow ... \rightarrow \tau_k \rightarrow \tau (k \geq 0)$
+     then let $(M_1, s_1) = DecS(s_0, \Gamma, \tau_1)$ in
+       ...
+     let $(M_k, s_k) = DecS(s_{k-1}, \Gamma, \tau_k)$ in
+       $(nM_1...M_k, s_k)$
+     else $\textbf{fail}$
+  DecS$(\lambda_{\tau' \rightarrow \tau''}) =$
+     if $\tau' \rightarrow \tau''$ is of the form $\tau_1 \rightarrow ... \rightarrow \tau_k \rightarrow \tau (k \geq 0)$
+     then let $(M_0, s_0) = DecS(s, \tau' \cdot \Gamma, \tau'')$ in
+     let $(M_1, s_1) = DecS(s_0, \Gamma, \tau_1)$ in
+       ...
+     let $(M_k, s_k) = DecS(s_{k-1}, \Gamma, \tau_k)$ in
+       $((\lambda:\tau_1.M_0)M_1...M_k, s_k)$
+     else $\textbf{fail}$
+\end{lstlisting}
+
+On distingue 3 points d'erreur de l'algorithme, dénotant chacun un encodage représentant un
+$\lambda$-terme mal formé:
+
+\begin{itemize}
+\item lorsqu'on essaie de décoder le symbole de fin d'entrée, quels que soient l'environnement et le type du programme
+\item lorsqu'un indice de De Bruijn n'a aucune correspondance dans l'environnement de types
+\item lorsqu'on ne retrouve pas le type du programme dans le type d'une abstraction 
+\end{itemize}
 
 \paragraph{Preuve}\label{preuve}
 
