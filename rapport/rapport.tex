@@ -1,0 +1,601 @@
+\documentclass[titlepage]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\usepackage{syntax}\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[unicode=true]{hyperref}
+\hypersetup{
+            pdftitle={TAS Analyse d'article: Compact Bit Encoding Schemes for Simply-Typed Lambda-Terms},
+            pdfauthor={Hugo Nakagawa Jordi Bertran de Balanda},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{listings}
+\usepackage{longtable,booktabs}
+% Fix footnotes in tables (requires footnote package)
+\IfFileExists{footnote.sty}{\usepackage{footnote}\makesavenoteenv{long table}}{}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+\renewcommand\refname{Références}
+
+% Listing formatting
+\lstset{
+  basicstyle=\ttfamily,
+  breaklines=true,
+  postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\hookrightarrow\space}},
+  mathescape
+}
+
+\title{TAS\\
+Analyse d'article:\\
+Compact Bit Encoding Schemes for Simply-Typed Lambda-Terms}
+\author{Hugo Nakagawa \and Jordi Bertran de Balanda}
+\date{Novembre 2016}
+
+\begin{document}
+\maketitle
+\newpage
+{
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+\newpage
+
+\section{Introduction}\label{introduction}
+
+Nous présentons ici l'article \emph{Compact Bit Encoding Schemes for
+Simply-Typed Lambda-Terms} \cite{takeda2016compact}. Cet article présente deux
+approches de codage de \(\lambda\)-termes en chaînes binaires pour
+obtenir une représentation compacte d'un programme fonctionnel, adapté à
+la représentation de structures de données arborescentes.
+
+Cet article fait suite aux travaux de Kobayashi et al. sur l'encodage de
+structures arborescentes en un programme fonctionnel (i.e.~traduisible
+en \(\lambda\)-termes) représentant cette structure \cite{kobayashi2012functional}.
+
+La compression d'ordre supérieur présente plusieurs avantages:
+
+\begin{itemize}
+\tightlist
+\item
+  En théorie, le ratio de compression peut être \emph{très elevé}.
+\item
+  Les données compressées peuvent être manipulées \emph{sans
+  décompression}.
+\item
+  La compression d'ordre supérieur peut être utilisée pour émuler
+  facilement d'autres schémas de compression.
+\end{itemize}
+
+Pour exploiter la puissance de compression de ces idées, il est
+nécessaire de savoir encoder de manière compacte des \(\lambda\)-termes.
+En particulier, pour tirer plein parti de l'émulation de schémas de compression
+avec l'encodage d'ordre supérieur, il est nécéssaire de minimiser le surcoût
+induit par la représentation de $\lambda$-termes pour pouvoir rivaliser avec
+les algorithmes 'classiques' de compression.
+
+Aucun des travaux d'étude de compression de \(\lambda\)-termes
+simplement typés déjà réalisés ne sont appropriés pour la compression
+d'ordre supérieur que vise l'article.
+
+Ainsi, le but de l'article est de trouver un couple de fonctions
+\((Enc, Dec) \in (\tau \rightarrow {0, 1}*) \times ({0, 1}* \rightharpoonup \tau)\)
+
+
+Avec \(\tau\) les triplets \((\Gamma, M, \tau)\):
+
+
+\section{Rappels}\label{conventions-de-larticle}
+
+\subsection{$\lambda$-calcul simplement typé}\label{lambda-calcul-simplement-typuxe9}
+
+\subsubsection{Typage}\label{typage}
+
+Le \(lambda\)-calcul simplement typé possède les règles de typage
+suivantes:
+
+\begin{grammar}
+
+\let\syntleft\relax
+\let\syntright\relax
+
+<$\tau$> ::= o
+\alt $\tau_1 \rightarrow \tau_2$
+
+\end{grammar}
+
+Ici, \(o\) est \textbf{l'unique} type admis par le système de types
+utilisé dans l'article. Nous nous basons sur ce système de types pour
+les encodages de \(\lambda\)-termes. Les encodages en bits décrits, en
+revanche, ne repose pas sur la présence d'un type unique, mais peut
+également être utilisé avec d'autres constructeurs de types, notamment
+des types de données algébriques.
+
+\subsubsection{Notation de De Bruijn}\label{notation-de-de-bruijn}
+
+Les indices de De Bruijn décrivent la distance entre la variable typée
+et l'abstraction qui la lie, en nombre d'abstractions. Les constantes
+sont considérées comme des variables libres, également représentées avec
+des indices de De Bruijn. Lorsque leur nom est important, il est aisé
+d'en créer une liste, et d'encoder cette liste séparément pour la
+diffuser en tandem avec le programme auquel elles appartiennent.
+
+Nous décrivons ainsi le langage que nous compressons de la manière
+suivante:
+
+\begin{grammar}
+
+\let\syntleft\relax
+\let\syntright\relax
+
+<M> ::= n
+\alt    | $\lambda: \tau.M$
+\alt    | $M_1 M_2$
+\end{grammar}
+
+Un \(\lambda\)-terme est:
+
+\begin{itemize}
+\tightlist
+\item
+  Un indice de De Bruijn
+\item
+  Une abstraction sur une variable de type \(\tau\)
+\item
+  Une application de \$ M\_1 \$ à \$ M\_2 \$
+\end{itemize}
+
+\section{Première approche: codage typé de $\lambda$-termes sans étiquette}\label{premiuxe8re-approche-codage-sans-uxe9tiquette-de-lambda-termes-basuxe9-sur-les-types}
+
+\subsection{Définition}\label{duxe9finition}
+
+Un codage de \(\lambda\)-termes sans étiquetage utilise les restrictions
+de types du \(\lambda\)-calcul simplement typé pour permettre d'omettre
+les étiquettes permettant de différencier variables, applications et
+abstractions dans une notation de De Bruijn. C'est la première étape de
+compression qui permet de réduire l'alphabet nécessaire pour encoder les
+termes. On applique un algorithme d'encodage de chaînes de caractères à
+ce résultat sans étiquettes pour obtenir l'encodage final.
+
+\subsection{\texorpdfstring{Encodage et décodage de \(\lambda\)-termes
+en
+séquences}{Encodage et décodage de \(\lambda\)-termes en séquences}}\label{encodage-et-duxe9codage-de-lambda-termes-en-suxe9quences}
+
+Comme expliqué en 2.2.2, on cherche à encoder chaque \(\lambda\)-terme
+en une séquence d'indices et de symboles d'abstraction de la forme
+\(\lambda_\tau\). Les informations de type propres aux abstractions sont
+suffisantes à elles seules pour retrouver la sémantique du
+\(\lambda\)-terme à partir de la séquence d'indices. L'article présente
+deux exemples qui permettent de comprendre le principe intuitivement,
+avant de définir formellement les fonctions d'encodage et décodage, et
+prouver leur fondement.
+
+\subsubsection{Exemples}\label{exemples}
+
+Comme premier exemple, nous prenons le terme défini par:
+
+\begin{itemize}
+\tightlist
+\item
+  La séquence d'indices et la forme d'applications \(0(011)(011)\)
+\item
+  Le type de ce \(\lambda\)-terme \(o\)
+\item
+  L'environnement de types
+  \(\Gamma: (o \rightarrow o \rightarrow o) \cdot o\)
+\end{itemize}
+
+On encode ce terme en la séquence simple de ses indices de De Bruijn, et
+le terme devient
+
+\[0(011)(011)\]
+
+Cette première approche décrite par l'article \emph{garantit} que la
+forme originale du terme soit récupérable par une suite de déduction à
+partir de cette forme réduite.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Comme le premier index de la séquence est 0, on sait que la séquence
+  se lira \(0M_1...M_k\).
+\item
+  Comme \(0\) est de type \(o \rightarrow o \rightarrow o\) et que le
+  terme est de type \(o\), on déduit que le terme est de la forme
+  \(0M_1M_2\), où \(M_1\) et \(M_2\) sont de type \(o\).
+\item
+  Connaissant le type du premier élément, il nous reste \(011011\). Le
+  premier index étant 0, on déduit que \(M_1\) est de la forme
+  \(0M_{1,1}M_{1,2}\) où \(M_{1,1}\) et \(M_{1,2}\) sont de type \(o\),
+  et \(M_{1,1}\) est encodé par un préfixe de la sous-séquence \(11011\)
+\item
+  Le premier indice de cette séquence étant \(1\) de type \(o\), on en
+  déduit immédiatement que \(M_{1,1}\) est la simple variable \(1\).
+\item
+  On sait alors que \(M_{1,2}\) est encodé par un préfixe de la
+  sous-séquence \(1011\).
+\item
+  De même qu'en 4, on obtient que \(M_{1,2}\) représente également
+  \(1\).
+\item
+  Par le même raisonnement qu'en 3-6, on obtient que \(M_2\) représente
+  la même chose que \(M_1\)
+\item
+  On obtient donc la décompression du terme en \(0(011)(011)\).
+\end{enumerate}
+
+Un deuxième exemple permet de voir la manière dont le type des abstractions est géré
+par l'encodage proposé par l'article, avec le terme:
+
+\begin{itemize}
+\tightlist
+\item
+  Représenté par $(\lambda_{o \rightarrow o \rightarrow o}.\lambda:o.(10)0)0$
+\item
+  Typé $o \rightarrow o$
+\item
+  Sous l'environnement de types $o \rightarrow o \rightarrow o$
+\end{itemize}
+
+La version encodée de ce terme est $\lambda_{(o \rightarrow o \rightarrow o) \rightarrow o \rightarrow o}.\lambda_{o \rightarrow o} 1 0 0 0$, obtenu comme
+précédemment en listant les $\lambda$ et les variables définissant ce terme.
+
+Afin de retrouver la forme originale du terme, on itère sur la tête de sa représentation
+compressée comme lors du premier exemple, en ajoutant une règle pour les abstractions.
+
+\begin{enumerate}
+  \tightlist
+  \item
+    Le premier élément du terme est $\lambda_{(o \rightarrow o \rightarrow o)}$: on en déduit que le terme est de la forme $(\lambda.M_0)M_1...M_k$,
+    où k est potentiellement 0.
+  \item
+    D'après l'information de type connue, $k = 1$, donc le terme est en fait de la forme $(\lambda.M_0)M_1$, où $M_0$ et $M_1$ ont des environnements de
+    types différents puisqu'on introduit une variable supplémentaire dans le corps de $M_0$, là où on ne fait qu'appliquer le résultat de l'abstraction
+    à $M_1$.
+  \item
+    De la même manière, on retrouve que le terme $\lambda_{o \rightarrow o} 1 0 0 0$ a pour forme $(\lambda.M_{0,0})M_{0,1}...M_{0,k}$.
+  \item
+    Avec l'information de type, on retrouve $k=0$, ce qui nous donne $M_0$ de la forme $\lambda:o.M_{0,0}$, et $M_{0,0}$ de type $o$ sous
+    $o \cdot (o \rightarrow o \rightarrow o) \cdot (o \rightarrow o \rightarrow o)$
+\end{enumerate}
+
+En faisant aboutir ce raisonnement, on obtient bien le $\lambda$-terme de départ.
+
+Il est important de remarquer ici que le type annoté sur une abstraction \emph{n'est pas} celui de la variable
+liée par l'abstraction, mais celui de l'abstraction résultante. En effet, annoter le type de la variable liée
+rend impossible la déduction de la forme des termes à partir des informations de type en présentant deux possibilités
+distinctes lors de la résolution de l'abstraction.
+
+\subsubsection{Formalisation}\label{formalisation}
+
+Après ces exemples, l'article formalise les fonctions d'encodage et
+décodage qui sont le but de l'article.
+
+\paragraph{Encodage}\label{encodage}
+
+La fonction d'encodage est définie comme une fonction récursive prenant
+un environnement de typage \textbf{TEnv} et une suite de
+\(\lambda\)-termes \(\Lambda\), en application partielle en un nombre
+indéterminé de \textbf{Sym}, l'alphabet de codage employé.
+
+\(EncS \in \textbf{TEnv} \times \Lambda \rightharpoonup \textbf{Sym}^*:\)
+\newline
+\(EncS(\Gamma, n) = n\) \newline
+\(EncS(\Gamma, \lambda:\tau_0.M) = \lambda_{typeOf(\Gamma, \lambda:\tau_0.M))}.EncS(\tau_0 \cdot \Gamma, M)\)
+\newline
+\(EncS(\Gamma, M_1, M_2) = EncS(\Gamma, M_1) \cdot EncS(\Gamma, M_1)\)
+
+\paragraph{Décodage}\label{duxe9codage}
+
+\paragraph{Preuve}\label{preuve}
+
+Comme pour tout système de codage, la propriété clé est l'équivalence
+entre un \(\lambda\)-terme et le résultat du décodage de l'encodage de
+celui-ci.
+
+En particulier, pour prouver le bien-fondé des fonctions définies plus
+haut, l'article démontre la propriété suivante:
+
+\[\forall s \in \textbf{Sym}^*, DecS(EncS(\Gamma, M) \cdot s,\Gamma,\tau)\]
+
+Autrement dit, on démontre que pour tout symbole de l'alphabet
+d'encodage, le résultat du décodage de l'encodage d'une séquence suivie
+de ce symbole, selon un environnement de types commun, est la même
+séquence suivie du même symbole. Cette preuve est faite par induction,
+avec le cas particulier où \(s = \epsilon\), c'est-à dire où tous les
+\(\lambda\)-termes à encoder/décoder ont déjà été traités. Pour ceci,
+l'article examine les deux formes potentiels du \(\lambda\)-terme \(M\):
+
+\begin{itemize}
+\tightlist
+\item
+  Une application, soit \(M = nM_1...M_k\), avec \(k\) potentiellement
+  nul
+\item
+  Une abstraction, soit \((\lambda:\tau'.M_0)M_1...M_k\), avec \(k\)
+  potentiellement nul
+\end{itemize}
+
+\subsection{Encodage binaire}\label{encodage-binaire}
+
+Par l'encodage présenté en 3.2, on peut maintenant convertir des
+\(\lambda\)-termes en triplets \((s, \Gamma, \tau)\). On désire
+compresser cette représentation de \(\lambda\)-termes avec un encodage
+binaire de chaînes de caractères, pour produire un résultat
+potentiellement transmissible à bas niveau.
+
+Cette compression opère sur 4 éléments différents:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Une table de types, qui associe à chaque type un identifiant unique
+  (concrètement, un entier)
+\item
+  L'environnement de types \(\Gamma\) et le type du \(\lambda\)-terme
+  \(\tau\)
+\item
+  La séquence \(s\) de symboles, c'est-à-dire les \(\lambda\)-termes
+  ôtés de leurs étiquettes
+\item
+  Si les noms des variables libres est important, une table similaire à
+  1. associant les indices de De Bruijn desdites variables libres à
+  leurs noms
+\end{enumerate}
+
+L'objectif de ces opérations est d'obtenir une chaîne d'entiers pouvant
+être directement encodée par un algorithme standard.
+
+\subsubsection{Table de types}\label{table-de-types}
+
+On définit à l'intérieur de la table de types le schéma d'encodage du
+type \(\tau\) comme la séquence binaire \([\![\tau]\!]\):
+
+\[[\![o]\!] = 0; [\![\tau_1 \rightarrow \tau_2]\!] = 1[\![\tau_1]\!][\![\tau_2]\!]\]
+
+La table de types elle-même est la séquence
+\([\![\tau_0]\!]...[\![\tau_{k}]\!]\) représentant les types rencontrés
+dans \(s\). C'est un code préfixe, pour lequel il n'y a donc pas besoin
+de séparateur. On assignera les identifiants \(i\) à chaque \(\tau_i\)
+rencontrés dans l'ordre.
+
+\subsubsection{\texorpdfstring{Environnement et type du
+\(\lambda\)-terme}{Environnement et type du \textbackslash{}lambda-terme}}\label{environnement-et-type-du-lambda-terme}
+
+De la même façon qu'en 3.3.1, on encode la séquence représentant
+l'environnement de types du programme en une suite
+\([\![\tau]\!][\![\tau_0]\!]...[\![\tau_{n}]\!]\) correspondant à
+\(\Gamma = \tau_0...\tau_n\). Dans l'optique de la création d'un
+algorithme de compression, une liberté ici est de supposer la taille
+combinée de la table de types et de l'environnement de types petite
+devant celle de la représentation sans étiquettes du programme \(s\),
+sous peine de devoir recompresser celles-ci avec un algorithme standard
+de compression de chaînes de caractères. En réalité, la compression
+présentée par l'article ne requiert pas cette étape supplémentaire
+lorsque le \(\lambda\)-terme encodé est grand, avec un nombre de types
+présents réduits.
+
+\subsubsection{Séquence de symboles}\label{suxe9quence-de-symboles}
+
+On opère deux phases de remplacement avant d'utiliser un algorithme
+usuel de compression de chaînes (dans le cas de l'article, un codage par
+intervalles adaptatif).
+
+\begin{itemize}
+\tightlist
+\item
+  On remplace chaque \(\lambda_\tau\) par l'identifiant de \(\tau\),
+  préparé en 3.3.1.
+\item
+  On additionne \(m\) à chaque indice de variable \(n\) de \(s\), où
+  \(m-1\) est l'indice de type le plus élevé obtenu par l'encodage de
+  \(\Gamma\) en 3.3.2
+\end{itemize}
+
+Ceci produit une séquence de nombres naturels dont l'encodage se fait
+'classiquement', les auteurs ayant choisi dans l'article un encodage par intervalles
+adaptatif.
+
+Lors de cette étape, on peut réaliser une optimisation importante qui permet de
+réduire le nombre de bits nécéssaires pour décrire les variables de la séquence $s$.
+En effet, sachant le type de chaque variable à tout instant, on peut utiliser les informations
+de type pour exclure certains symboles ayant des types incompatibles avec la portion déjà
+traitée du $\lambda$-terme, et ainsi déterminer un \emph{sous-ensemble} des indices associés à $\Gamma$
+de manière transparente.
+
+Plus formellement: si les types qui peuvent se trouver à la position $i$ sont ${a_0 ... a_k}$,
+avec $a_o < ... < a_k$, et l'indice qui s'y trouve est $a_j$, alors on peut renuméroter
+$a_j$ en $j$ avec la garantie de pouvoir retrouver ce type au décodage, l'encodage et
+le décodage donnant accès aux mêmes informations de type au même moment.
+
+\section{Deuxième approche : Codage basé sur des grammaires}
+\subsection{Introduction}
+La première approche a transformé le $\lambda$-terme en une séquence de nombres. Elle ne permet pas d'obtenir une compression qui prend en compte la répartition des nombres dans la séquence. En exploitant le fait que certains index de de Bruijn ne peuvent pas apparaître dans certaines portions du code, on peut réduire localement la plage d'entiers à utiliser pour l'encodage, ce qui permet de réduire l'espace mémoire occupé par le résultat de la compression. Mais, via le codage sans étiquette, cela est impossible, à cause du fait que le compresseur backend est un simple compresseur de chaîne de caractères.
+
+Pour éviter ce problème, les auteurs proposent d'utiliser à la place un compresseur prenant en paramètre une grammaire non contextuelle (Context-Free Grammar, CFG). Utiliser un CFG offre d'autres avantages : être sûr de ne compresser que des $\lambda$-termes simplement typés (sous réserve que la grammaire soit correctement formulée), et restreindre la syntaxe des termes considérés, pour encoder de façon encore plus compacte. Un compresseur basé sur le schéma d'encodage de Cameron, lui-même une variation du codage arithmétique, a été créé.
+
+\subsection{Schéma d'encodage de Cameron pour le CFG}
+
+Si on utilise un compresseur de chaîne de caractères, des codes bit vont être alloués pour des combinaisons de termes qui n'apparaîtront pas. Par exemple, en considérant les expressions arithmétiques à notation infixe, un code bit pourrait être alloué pour ``+aa''.
+Définir un arbre syntaxique (parse tree) ou une suite de règles de dérivation permet de limiter les possibilités.
+Prenons comme exemple la grammaire suivante (cf. page 151) :
+\begin{lstlisting}
+type exp = Plus of exp * fact | Factor of factand fact = Times of fact * var | Var of varand var = A.
+\end{lstlisting} 
+Supposons que l'on souhaite compresser l'expression arithmétique a + a * a. On peut l'exprimer ainsi : Plus(Factor(Var(A))),Times(Var(A),A)). Si on associe 0 à Plus et Times (qui sont les premières options des non-terminaux, exp et fact) et 1 à Factor et Var (qui sont les secondes options des non-terminaux), on encodera l'expression en 01101. Pour décoder 01101 et retrouver la forme originelle, il faut partir de ``exp'', puis appliquer une par une les règles de la grammaire. La règle à appliquer est déterminée en fonction de la cible (qui est le premier élément non terminal) et le numéro lu (0, 1, 1, 0 et 1 dans cet ordre). Voici un tableau qui explicite le décodage.
+\begin{center}
+   \begin{tabular}{ | l | c | l | l | }
+     \hline
+     Expression & N. traité & Règle appliquée & Cible \\ \hline
+     exp & 0 & Plus & exp \\ \hline
+     exp + fact & 1 & Factor & exp \\ \hline
+     fact + fact & 1 & Var & fact \\ \hline
+     var + fact & 0 & Times & fact \\ \hline
+     var + fact * var & 1 & Var & fact \\ \hline
+     var + var * var & &  & \\
+     \hline
+   \end{tabular}
+ \end{center}
+
+A la fin, nous retrouvons donc bien l'expression a + a * a de départ. Par ailleurs, a * a + a aurait été encodé en 01011.
+
+On peut sur le même principe encoder des $\lambda$-expressions, en réécrivant la grammaire comme une suite de règles de production. Le fait que le schéma de Cameron soit basé sur le codage arithmétique permet d'utiliser l'arithmétique de virgule fixe.
+
+Il faut maintenant développer une grammaire représentant les $\lambda$-termes simplement typés, qui décrit les termes correctement typés.
+
+\subsection{Encodage basé sur la grammaire de $\lambda$-termes simplement typés}
+Les règles de typage du $\lambda$-calcul simplement typé peuvent être vus comme des règles de production de CFG. Cela permet de construire une suite finie de règles de production d'un terme donné (fini) à partir des règles de typage.
+
+On peut réduire le nombre de règles de production nécessaires pour les variables en modifiant l'indexage de de Bruijn. Au lieu de seulement associer un numéro à chaque variable, on lui associe également un type, et on l'indexe par rapport à son type. Ainsi, lors du décodage, pour retrouver à quel $\lambda$ une variable est reliée, il faut d'abord consulter son type, puis ensuite son index. Son index sera utilisé comme pour le codage sans étiquette, à ceci près qu'il ne faut prendre en compte que les $\lambda$ ayant le même type que la variable.
+
+Les règles de production pour les $\lambda$-termes simplement typés sont (cf. page 151) :
+\begin{center}
+  (Grammaire 1)
+   \begin{tabular}{ c c l }
+     $M_\tau$ & $\to$ & $n_{\tau_1 \to \dots \to \tau_k \to \tau}M_{\tau_1}\dots M_{\tau_k}$ \\
+     & $\vert$ & $(\lambda : \tau' .M_{\tau''})M_{\tau_1}\dots M_{\tau_k}$ \\
+   \end{tabular}
+ \end{center}
+Ces règles sont des templates : il faut remplacer les $\tau$ par des types concrets avant d'obtenir les véritables règles. Cela correspond à la représentation sans étiquette de la partie précédente. Cependant, avec ce CFG, le codage arithmétique peut être utilisé pour prendre en compte la fréquence de chaque règle de production.
+
+Cette grammaire peut permettre de former des termes invalides, car elle ne prend pas en compte les environnements de types. Ce qui devient possible en prenant en compte quelle règle de production peut être utilisée à quel moment, et ainsi éviter d'allouer des bits à des règles inutilisées. On peut soit éliminer une règle inutilisée lors de son encodage, en calculant sa probabilité d'utilisation, soit prendre en compte l'environnement de type explicitement lors de la conception de la grammaire. Cette dernière option n'a pas été envisagée, car le nombre de règles de production aurait trop augmenté (dans le cadre du schéma de Cameron) pour être intéressant.
+
+La grammaire peut être optimisée en considérant la $\beta\eta$-équivalence.
+
+\subsection{Optimisations basées sur la $\beta\eta$-équivalence}
+On peut encoder sans faire de différence entre deux termes $\alpha$-équivalents. Si on se trouve dans le cadre de la compression d'ordre supérieur, en plus de cela, on peut ne pas différencier deux termes $\beta$-équivalents, et/ou $\eta$-équivalents. L'$\eta$-conversion est l'ajout ou le retrait d'une abstraction sur une fonction. Par exemple, l'expression OCaml suivante :
+\begin{lstlisting}[language=Caml]
+let add x = x + 1;;
+\end{lstlisting} 
+devient, après $\eta$-expansion :
+\begin{lstlisting}[language=Caml]
+let add = function x -> x + 1;;
+\end{lstlisting} 
+
+On pourrait choisir de n'allouer des codes bit que aux formes normales, mais cela rallonge la taille de l'expression, ce qui n'est pas le but recherché. Ainsi, on peut établir un ensemble de règles qui transforment les $\lambda$-expressions en d'autres qui sont $\beta\eta$-équivalents, seulement lorsque le résultat a une longueur plus courte que l'expression originelle. On incorpore donc les règles suivantes (cf. page 152) :
+
+\begin{itemize}  
+\item $(\lambda x.L)M N \to (\lambda x.L N)M$ (x non libre dans N)
+\item $(\lambda x.M) y \to [y/x]M$
+\item $(\lambda x.L)((\lambda y.M)N) \to (\lambda y.(\lambda x.L)M)N$ (y non libre dans L)
+\end{itemize}
+
+En prenant la première règle en compte, la grammaire devient (cf. page 152) :
+\begin{center}
+    (Grammaire 2)
+   \begin{tabular}{ c c l }
+     $M_\tau$ & $\to$ & $n_{\tau_1 \to \dots \to \tau_k \to \tau}M_{\tau_1}\dots M_{\tau_k}$ \\
+     & $\vert$ & $(\lambda : \tau' .M_{\tau})M_{\tau'}$ \\
+     & $\vert$ & $\lambda : \tau' .M_{\tau''}$ (avec $\tau = \tau' \to \tau''$)\\
+   \end{tabular}
+ \end{center}
+En intégrant les trois règles, la grammaire devient (cf. page 152) :
+\begin{center}
+    (Grammaire 3)
+   \begin{tabular}{ c c l }
+     $M_\tau$ & $\to$ & $n_{\tau_1 \to \dots \to \tau_k \to \tau}M_{\tau_1}\dots M_{\tau_k}$ \\
+     & $\vert$ & $(\lambda : \tau' .M_{\tau})N_{\tau'}$ \\
+     & $\vert$ & $\lambda : \tau' .M_{\tau''}$ (avec $\tau = \tau' \to \tau''$)\\
+     $N_\tau$ & $\to$ & $n_{\tau_1 \to \dots \to \tau_k \to \tau}M_{\tau_1}\dots M_{\tau_k}$ (avec $k > 0$)\\
+     & $\vert$ & $\lambda : \tau' .M_{\tau''}$ (avec $\tau = \tau' \to \tau''$)\\
+   \end{tabular}
+ \end{center}
+On souhaite aussi prendre en compte la $\beta$-équivalence suivante (sous réserve que L et M ne contiennent ni x ni y) (cf. page 152) :
+\begin{lstlisting}[language=Caml]
+(let x = L in let y = M in N) <-> (let y = M in let x = L in N)
+\end{lstlisting} 
+Cela permettrait d'éviter d'allouer de l'espace pour la même variable deux fois. Mais un tel cas de figure est difficile à détecter via une grammaire, puisque les deux écritures sont syntaxiquement identiques. Une solution possible est d'imposer un ordre total sur les $\lambda$-termes, et de réordonner les ``let'', puis de prendre en compte cela lors du calcul des probabilités d'utilisation.
+
+\subsection{Représentation en bits de l'information grammaticale}
+La représentation en bits d'un $\lambda$-terme est obtenue par l'encodage arithmétique basée sur une grammaire, ainsi que l'information concernant la grammaire choisie. Un codeur backend adaptatif, prenant en compte une grammaire et les plages, a été créé. On peut ainsi prendre par exemple la Grammaire 2 ou 3 comme template. Cela nécessite de préparer des séquences de types, et des maps indiquant quelles règles existent ou non, pour obtenir une suite de règles depuis le template. Les données sont ensuite représentées comme une séquence de bits, et est passée à un compresseur de chaîne de caractères.
+
+\section{Expérimentations}\label{expuxe9rimentations}
+
+Les auteurs ont fait de nombreux tests examinant la qualité des
+résultats produits par leur approche. Utilisant des jeux de données
+divers (séquençage ADN, code source, abstracts de papiers scientifiques
+collectées massivement selon un mot clé, et fichiers XML tirés de
+travaux sur la compression de structures arborescentes), ils génèrent
+des \(\lambda\)-termes grâce à un compresseur d'ordre supérieur. Ils
+comparent leurs deux approches dans leurs différents états
+d'optimisation aux algorithmes précédemment publiés.
+
+Ils montrent ainsi que leurs algorithmes semblent être, sur des entrées
+de taille raisonnable, souvent d'un ordre de grandeur plus efficaces en
+qualité qui est, sur leur jeu de tests, meilleure que celle des
+algorithmes existants. La seule ombre au tableau est leur performance
+décevante par rapport aux travaux existants \cite{tromp2007binary,vytiniotis2010functional,kennedy2012every} pour de très petits jeux de
+données (moins de 150 termes), expliquable l'overhead induit par la
+nécéssité de véhiculer soit les informations de type ou de grammaire
+relatives au programme.
+
+La comparaison sur les mêmes jeux de données avec un algorithme
+`classique' spécialisé dans la compression de structures arborescentes
+en grammaire SLCDF (Straight Line Context-Free), TreeRepair \cite{lohrey2011tree}, permet de
+constater que les algorithmes basés sur la compression d'ordre supérieur
+sont compétitifs avec celui-ci dans des jeux de tests développés pour ce
+dernier.
+
+Il aurait été intéressant d'avoir des informations comparatives de
+performances en temps des différents algorithmes présentés avec les
+algorithmes existants, que les auteurs n'ont visiblement pas jugé utile
+d'inclure. Nous aurions ainsi pu conclure sur l'efficacité temporelle de
+leurs algorithmes aussi bien que sur la qualité de leurs résultats.
+
+\section{Conclusion}\label{conclusion}
+
+Cet article de recherche présente deux techniques de compression de
+\(\lambda\)-expressions. La première, reposant sur la déduction de la
+forme des \(\lambda\)-termes à partir d'informations de types transmises
+avec le programme, est idéale pour de petits programmes. La seconde se
+base sur les grammaires non contextuelles, et est optimisée pour les
+expressions d'ordre supérieur, en prenant en compte la
+$\beta\eta$-équivalence.
+
+Leurs résultats, malgré un overhead important qui rend
+leur utilisation peu indiquée pour des programmes courts, présentent d'excellents
+résultats sur des programmes de taille conséquente, même mis en compétition avec
+des algorithmes spécialisés dans une forme particulière de structures arborescentes.
+
+Ces recherches permettent d'obtenir de meilleurs résultats en compression de
+\(\lambda\)-expressions d'ordre supérieur, comparés aux précédents. L'article ouvre
+également la voie à la possibilité d'appliquer ce style de codage à des données
+autres que des structures arborescentes en posant les fondations d'un schéma
+d'encodage performant et adaptable par différentes optimisations décrites dans
+l'article.
+
+\bibliographystyle{unsrt}
+\bibliography{rapport}{}
+
+\end{document}

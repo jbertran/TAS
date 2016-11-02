@@ -2,5 +2,8 @@
 
 all: rapport
 
-rapport: rapport.md
-	pandoc rapport.md --variable documentclass=article --variable classoption=titlepage -H preamble.tex -o rapport.pdf --listings --number-sections --toc
+rapport: rapport.tex rapport.bib
+	pdflatex rapport.tex
+	bibtex rapport
+	pdflatex rapport.tex
+	pdflatex rapport.tex
