@@ -4,7 +4,7 @@
   Antoine Miné 2015
 *)
 
-(* 
+(*
    Definition of the abstract syntax trees output by the parser.
 *)
 
@@ -22,7 +22,7 @@ type extent = position * position (* start/end *)
 let extent_unknown = (position_unknown, position_unknown)
 
 
-(* Many parts of the syntax are tagged with an extent indicating which 
+(* Many parts of the syntax are tagged with an extent indicating which
    part of the parser-file corresponds to the sub-tree.
    This is very useful for interesting error reporting!
  *)
@@ -36,12 +36,12 @@ type var = string
 
 
 (* types: only integers (mathematical integers, in Z) *)
-type typ = AST_INT      
+type typ = AST_INT
 
 
 (* unary expression operators *)
 
-type int_unary_op = 
+type int_unary_op =
   | AST_UNARY_PLUS     (* +e *)
   | AST_UNARY_MINUS    (* -e *)
 
@@ -56,6 +56,7 @@ type int_binary_op =
   | AST_MINUS         (* e - e *)
   | AST_MULTIPLY      (* e * e *)
   | AST_DIVIDE        (* e / e *)
+  | AST_MODULO
 
 type compare_op =
   | AST_EQUAL         (* e == e *)
@@ -72,7 +73,7 @@ type bool_binary_op =
 
 (* expressions *)
 
-type int_expr = 
+type int_expr =
   (* unary operation *)
   | AST_int_unary of int_unary_op * (int_expr ext)
 
@@ -86,7 +87,7 @@ type int_expr =
   | AST_int_const of string ext
 
   (* non-deterministic choice between two integers *)
-  | AST_rand of (string ext) (* lower bound *) * 
+  | AST_rand of (string ext) (* lower bound *) *
                 (string ext) (* upper bound *)
 
 
@@ -100,9 +101,9 @@ type bool_expr =
 
   (* constants *)
   | AST_bool_const of bool
-      
 
-        
+
+
 (* statements *)
 type stat =
 
@@ -113,14 +114,14 @@ type stat =
   | AST_assign of (var ext) * (int_expr ext)
 
   (* if-then-else, with boolean condition;
-     the else branch is optional 
+     the else branch is optional
    *)
-  | AST_if of (bool_expr ext) (* condition *) * 
-              (stat ext) (* then branch *) * 
+  | AST_if of (bool_expr ext) (* condition *) *
+              (stat ext) (* then branch *) *
               (stat ext option) (* optional else *)
 
   (* while loop, with boolean condition *)
-  | AST_while of (bool_expr ext) (* condition *) * 
+  | AST_while of (bool_expr ext) (* condition *) *
                  (stat ext) (* body *)
 
   (* program exit *)
@@ -133,6 +134,6 @@ type stat =
   | AST_print of (var ext) list
 
 
-        
+
 (* a program is a list of statements *)
 type prog = stat ext list

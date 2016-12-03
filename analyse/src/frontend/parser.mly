@@ -39,6 +39,7 @@ open Abstract_syntax_tree
 %token TOK_MINUS
 %token TOK_EXCLAIM
 %token TOK_DIVIDE
+%token TOK_MODULO
 %token TOK_LESS
 %token TOK_GREATER
 %token TOK_LESS_EQUAL
@@ -61,7 +62,7 @@ open Abstract_syntax_tree
 %left TOK_AND_AND
 %left TOK_EXCLAIM
 %left TOK_PLUS TOK_MINUS
-%left TOK_STAR TOK_DIVIDE TOK_PERCENT
+%left TOK_STAR TOK_DIVIDE TOK_MODULO
 
 
 /* entry-point */
@@ -96,6 +97,7 @@ file: t=list(ext(stat)) TOK_EOF { t }
 %inline int_binary_op:
 | TOK_STAR           { AST_MULTIPLY }
 | TOK_DIVIDE         { AST_DIVIDE }
+| TOK_MODULO         { AST_MODULO }
 | TOK_PLUS           { AST_PLUS }
 | TOK_MINUS          { AST_MINUS }
 

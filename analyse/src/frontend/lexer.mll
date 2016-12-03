@@ -73,6 +73,7 @@ rule token = parse
 | "-"    { TOK_MINUS }
 | "!"    { TOK_EXCLAIM }
 | "/"    { TOK_DIVIDE }
+| "%"    { TOK_MODULO }
 | "<"    { TOK_LESS }
 | ">"    { TOK_GREATER }
 | "<="   { TOK_LESS_EQUAL }

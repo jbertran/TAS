@@ -46,6 +46,7 @@ let string_of_bool_unary_op = function
 let string_of_int_binary_op = function
   | AST_MULTIPLY -> "*"
   | AST_DIVIDE -> "/"
+  | AST_MODULO -> "%"
   | AST_PLUS -> "+"
   | AST_MINUS -> "-"
 
