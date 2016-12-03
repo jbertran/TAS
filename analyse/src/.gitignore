@@ -9,6 +9,15 @@
 *.cmxs
 *.cmxa
 
+# Dynamic make dependencies
+depend
+
+# lexing/parsing
+frontend/lexer.ml
+frontend/parser.ml
+frontend/parser.mli
+frontend/parser.conflicts
+
 # Generated binary
 analyzer.byte
 analyzer.opt
