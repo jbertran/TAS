@@ -181,7 +181,7 @@ module Constants = (struct
       (* this is sound, but not precise *)
       x, y
   | AST_MODULO ->
-     x, y
+     meet x (add (div x y) r), meet y (add (div x y) r)
       
 end : VALUE_DOMAIN)
 
