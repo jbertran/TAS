@@ -1,0 +1,9 @@
+\beamer@endinputifotherversion {3.36pt}
+\beamer@sectionintoc {1}{Compression de $\lambda $-termes}{3}{0}{1}
+\beamer@subsectionintoc {1}{1}{Compression d'ordre sup\IeC {\'e}rieur}{3}{0}{1}
+\beamer@sectionintoc {2}{Codage typ\IeC {\'e} sans \IeC {\'e}tiquettes}{4}{0}{2}
+\beamer@subsectionintoc {2}{1}{Principe}{4}{0}{2}
+\beamer@subsectionintoc {2}{2}{Transformation}{6}{0}{2}
+\beamer@subsectionintoc {2}{3}{Encodage binaire}{8}{0}{2}
+\beamer@sectionintoc {3}{Exp\IeC {\'e}rimentations}{11}{0}{3}
+\beamer@sectionintoc {4}{Conclusion}{13}{0}{4}

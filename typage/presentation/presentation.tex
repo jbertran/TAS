@@ -1,0 +1,140 @@
+\documentclass{beamer}
+
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{listings}
+
+\lstset{
+  basicstyle=\ttfamily,
+  breaklines=true,
+  postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\hookrightarrow\space}},
+  mathescape
+}
+
+\usetheme{Rochester}
+
+\title{TAS \\ Compact Bit Encoding Schemes for Simply-Typed Lambda-Terms}
+\author{Hugo Nakagawa \and Jordi Bertran de Balanda}
+\date{Novembre 2016}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}
+  \tableofcontents
+\end{frame}
+
+\section{Compression de $\lambda$-termes}
+
+\subsection{Compression d'ordre supérieur}
+\begin{frame}{Compression d'ordre supérieur}
+  \begin{itemize}
+  \item
+    En théorie, offre un ratio de compression \emph{très élevé} \\
+    Par exemple: \\
+    $a^{2n}b \equiv$ let \emph{twice} = $\lambda f.\lambda x.f(fx)$ in $twice^n a b$
+  \item Produire des données compressées qui peuvent être manipulées \emph{sans décompression}
+  \item Émuler des schémas de compression 'classiques'
+  \end{itemize}
+\end{frame}
+
+\section{Codage typé sans étiquettes}
+
+\subsection{Principe}
+\begin{frame}{Codage typé sans étiquettes - principe}
+  \begin{block}{But}
+    \begin{enumerate}
+      \item Retirer les étiquettes qui déterminent visuellement l'associativité des $\lambda$-termes
+      \item Générer une séquence binaire contenant informations de types et indices de De Bruijn, correspondant au programme encodé
+    \end{enumerate}
+  \end{block}
+  \pause
+  \begin{block}{Outils}
+    \begin{enumerate}
+      \item Environnement de typage $\Gamma$
+      \item Type du programme $\tau$
+      \item Séquence sans étiquettes d'indices de De Bruijn
+    \end{enumerate}
+  \end{block}
+
+\end{frame}
+
+\subsection{Transformation}
+\begin{frame}{Codage typé sans étiquettes - transformation}
+  \begin{block}{Application}
+    $$0(011)(011) \Rightarrow 0011011$$
+  \end{block}
+  \begin{block}{Abstraction}
+    $$(\lambda_{o \rightarrow o \rightarrow o}.\lambda:o.(10)0)0 \Rightarrow \lambda_{(o \rightarrow o \rightarrow o) \rightarrow o \rightarrow o}.\lambda_{o \rightarrow o} 1 0 0 0$$
+  \end{block}
+  \pause
+  Avec $\Gamma$ l'environnement de types associé, on \emph{garantit} qu'il est possible de retrouver
+  la forme originale étiquetée. On définit \emph{formellement} et on prouve les fonctions
+  d'encodage et de décodage qui permettent de passer d'un état à l'autre.
+\end{frame}
+
+\subsection{Encodage binaire}
+\begin{frame}{Codage typé sans étiquettes - encodage binaire}
+\begin{block}{Table de types}
+\begin{itemize}
+\item Types codés en notation préfixe: $[\![o]\!] = 0; [\![\tau_1 \rightarrow \tau_2]\!] = 1[\![\tau_1]\!][\![\tau_2]\!]$
+
+    \item Séquence de types sans séparateurs, indexés dans leur ordre de rencontre
+\end{itemize}
+\end{block}
+\pause
+\begin{block}{Environnement, type du programme}
+\begin{itemize}
+    \item Types codés avec la même  notation
+    \item Séquence de types sans séparateurs
+    \item Éventuellement à recompresser 'classiquement'
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}{Codage typé sans étiquettes - encodage binaire}
+\begin{block}{Séquence de symboles}
+\begin{itemize}
+    \item Chaque $\lambda_\tau$ est remplacé par l'indice de $\tau$, qu'on a préparé dans la table de types \item Chaque indice de variable est incrémenté de $k$, avec $k-1$ l'indice le plus élevé de l'environnement
+    \item On peut optimiser la quantité de bits utilisés en raisonnant sur les types disponibles 
+\end{itemize}
+\end{block}
+On encode ce résultat en binaire, donnant le résultat final.
+\end{frame}
+
+\section{Expérimentations}
+
+\begin{frame}{Expérimentations}
+\begin{block}{Méthodologie}
+\begin{itemize}
+\item Données brutes tirées de séquençage ADN, dictionnaires, articles et jeux de test XML
+\item Génération de $\lambda$-termes avec un compresseur d'ordre supérieur
+\end{itemize}
+\end{block}
+\pause
+\begin{itemize}
+\item Performances décevantes sur des petits jeux de tests dues à l'overhead d'informations de types
+\item Performances globalement supérieures aux algorithmes précédemment disponibles
+\end{itemize}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Conclusion}
+\begin{itemize}
+\item Deux techniques de compression de $\lambda$-expressions
+    \begin{itemize}
+      \item Sans étiquette : mieux adaptée aux petits programmes
+      \item Avec CFG : optimisée pour les expressions d'ordre supérieur
+    \end{itemize}
+\item Excellents résultats sur des programmes longs
+\item Meilleurs résultats en compression de $\lambda$-expression d'ordre supérieur
+\item Perspectives : adaptation à d'autres types de structures
+\end{itemize}
+\end{frame}
+
+\end{document}
