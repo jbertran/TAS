@@ -1,0 +1,14 @@
+# Compilation artifacts and binaries
+*.annot
+*.cmo
+*.cma
+*.cmi
+*.a
+*.o
+*.cmx
+*.cmxs
+*.cmxa
+
+# Generated binary
+analyzer.byte
+analyzer.opt
