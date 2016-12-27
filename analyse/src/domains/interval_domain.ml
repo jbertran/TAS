@@ -30,7 +30,7 @@ module Interval =
       match x,y with
       | BOT, a | a, BOT -> a
       | TOP, _ | _, TOP -> TOP
-      | e1, e2 -> f e1 e2
+      | Elem _ , Elem _ -> f x y
 
     let get_char (a: bound): string =
       match a with
@@ -60,13 +60,13 @@ module Interval =
       | FNI, B a | B a, FNI -> Elem (FNI, B a)
       | INF, B a | B a, INF -> Elem (B a, INF)
       | INF, FNI | FNI, INF -> Elem (FNI, INF)
+      | _ -> BOT
 
     let const (c: Z.t): t =
-      Elem (B c, B c)
+      make_elem (B c) (B c)
 
     let rand (a: Z.t) (b: Z.t): t =
-      if a > b then Elem (B b, B a)
-      else Elem (B a, B b)
+      make_elem (B a) (B b)
 
     let neg =
       let ens_neg = function
@@ -77,28 +77,50 @@ module Interval =
         | _ -> BOT
       in lift1 ens_neg
 
-    let ens_apply (f: Z.t -> Z.t -> Z.t) (a: t) (b: t): t =
+    let apply_same (f: Z.t -> Z.t -> Z.t) (a: t) (b: t): t =
       match a, b with
       | Elem (B a, INF), Elem (B b, _) | Elem (B b, _), Elem (B a, INF) -> make_elem (B (f a b)) INF
       | Elem (FNI, B a), Elem (_, B b) | Elem (_, B b), Elem (FNI, B a) -> make_elem FNI (B (f a b))
-      | Elem (B a, B b), Elem (B c, B d) -> make_elem (B (f a c)) (B (f b d))
+      | Elem (B a, B b), Elem (B c, B d) -> make_elem (B (f a b)) (B (f c d))
+      | _ -> BOT
 
-    let add = lift2 (ens_apply Z.add)
+    let apply_opposite (f: Z.t -> Z.t -> Z.t) (a: t) (b: t): t =
+      match a, b with
+      | Elem (B a, INF), Elem (B b, _) | Elem (B b, _), Elem (B a, INF) -> make_elem (B (f a b)) INF
+      | Elem (FNI, B a), Elem (_, B b) | Elem (_, B b), Elem (FNI, B a) -> make_elem FNI (B (f a b))
+      | Elem (B a, B b), Elem (B c, B d) -> make_elem (B (f a d)) (B (f b c))
+      | _ -> BOT
 
-    let sub = lift2 (ens_apply Z.sub)
+    let add = lift2 (apply_same Z.add)
 
-    let mul = lift2 (ens_apply Z.mul)
+    let sub = lift2 (apply_opposite Z.sub)
 
-    let modu = lift2 (ens_apply Z.rem)
+    let mul = lift2 (apply_same Z.mul)
 
-    let div = lift2 (ens_apply Z.div)
+    let modu (x: t) (y: t) =
+      let ens_mod x y=
+        match x, y with
+        | Elem _, Elem (_, B d) -> make_elem (B Z.zero) (B d)
+        | Elem (_, B b), Elem (_, INF) -> make_elem (B Z.zero) (B b)
+        | Elem (_, INF), Elem (_, INF) -> make_elem (B Z.zero) INF
+        | _ -> TOP
+      in lift2 ens_mod
+
+    # TODO
+    let div (x: t) (y: t) =
+      let ens_div x y =
+        match x, y with
+        | TOP, Elem (B a, B b) | Elem (INF, FNI), Elem (B a, B b) -> TOP
+        | _ -> BOT
+      in lift2 ens_div
 
     let join (a :t) (b :t) =
       match a, b with
       | BOT, _ -> b
       | _, BOT -> a
       | Elem (min_a, max_a), Elem (min_b, max_b) ->
-         Elem (lo_b min_a min_b, hi_b max_a max_b)
+        Elem (lo_b min_a min_b, hi_b max_a max_b)
+      | TOP, _ | _, TOP -> TOP
 
     let meet (a :t) (b :t) : t =
       match a, b with
