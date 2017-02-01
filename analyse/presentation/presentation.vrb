@@ -1,0 +1,28 @@
+\frametitle{Dynamic State Partitioning}
+Instead of analyzing a code fragment for all possible input states, split the input states according to a predicate.
+
+    For example:
+    \begin{minipage}{0.5\textwidth}
+    \begin{verbatim}
+        if (condition) {
+          a;
+        }
+        else {
+          b;
+        }
+        c;
+    \end{verbatim}
+    \end{minipage}%
+    \begin{minipage}{0.5\textwidth}
+    \begin{verbatim}
+        if (condition) {
+          a;
+          c;
+        }
+        else {
+          b;
+          c;
+        }
+    \end{verbatim}
+    \end{minipage}
+    This is especially useful when an array index variable potentially points to many different locations verifying local invariants.

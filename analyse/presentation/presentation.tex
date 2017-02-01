@@ -1,0 +1,198 @@
+\documentclass[aspectratio=169]{beamer}
+
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{listings}
+\usetheme{Rochester}
+
+\title{TAS -- Article Presentation \\ Verification of Device Drivers and Intelligent Controlles: a Case Study \\ \textit{David Monniaux}}
+\author{Thibault Krebs \and Jordi Bertran de Balanda}
+\date{Février 2017}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Overview}
+  \begin{multicols}{2}
+    \tableofcontents
+  \end{multicols}
+\end{frame}
+
+\section{Article background}
+
+\subsection{Device drivers and critical systems}
+\begin{frame}{Device drivers and critical systems}
+    \begin{block}{Device driver}
+    \begin{itemize}
+        \item Extremely hard to verify in isolation - take the \textbf{hardware} reaction into account.
+        \item Hardware and software interface with memory mapped registers, within a simple specification.
+    \end{itemize}    
+    \end{block}
+    \begin{block}{Industry shift}
+    \begin{itemize}
+        \item Critical system devices were \textit{extremely} simple
+        \item Highest security rating devices ship with limited I/O subsystem in place of an OS
+        \item Progressive shift towards off-the-shelf interfaces like USB or Ethernet 
+    \end{itemize}
+    \end{block}
+    Device driver certification is \textbf{very} desirable. To achieve it, we need to be able to prove a device driver's code is \textit{sound}.
+\end{frame}
+
+\subsection{Challenges involved}
+\begin{frame}{Challenges}
+Two main challenges to using consumer interfaces in critical systems:
+\begin{itemize}
+    \item Many unnecessary features: hotswapping, plug-and-play, dynamic configuration, etc... Unneeded in most \textbf{static} critical applications
+    \item Higher bandwidth, which means the use of DMA (Direct Memory Access), making the device driver behaviour essentially \textbf{asynchronous}, therefore harder to analyze
+\end{itemize}
+\begin{alertblock}{Asynchronous behaviour is BAD}
+Asynchronous behaviour is \textbf{especially} important in device drivers, where software/hardware interfaces \textit{and} driver state are all, in most drivers, in \textit{shared} memory space.
+\end{alertblock}
+\end{frame}
+
+\section{Implementation}
+
+\subsection{Objectives}
+\begin{frame}{Drivers chosen}
+    The author chose the OHCI specification for USB 1.1 devices as his testbed for device driver analysis.
+    \begin{block}{Goals}
+    \begin{enumerate}
+        \item Develop a formal definition of the informal English specification of OHCI
+        \item Extend the Astrée abstract interpreter for use with the specifics of 
+        \item Model the device driver's asynchronous behaviour into something that can be analyzed by Astrée
+    \end{enumerate}
+    \end{block}
+    We will see later that some concessions had to be made in order to have a working end result.
+\end{frame}
+
+\subsection{Abstract Interpretation}
+\begin{frame}{Extensions made to Astrée}
+    Main potentially problematic issues with device driver code:
+    \begin{itemize}
+        \item Pointer arithmetic of variable step: modelized with $ptr = base + offset$ using non-relational abstract domains.
+        Since most of the structures used will be static within the ``critical system'' application, this is especially important.
+        \begin{itemize}
+            \item interval domain $[m, M]$ for the bounds of the pointer
+            \item congruential domain $a + b.\mathbb{Z}$ for pointer stride
+        \end{itemize}
+        \item Extensive use of bitmaps coming from the concern of optimizing memory usage - typically in option vectors or 
+        state variables. This is done with a specific domain, with no further description from the author.
+    \end{itemize}
+\end{frame}
+
+\subsection{Dynamic State Partitioning}
+\begin{frame}[fragile]{A perk of using Astrée: Dynamic State Partitioning}
+    Instead of analyzing a code fragment for all possible input states, split the input states according to a predicate.
+
+    For example:
+    \begin{minipage}{0.5\textwidth}
+    \begin{verbatim}
+        if (condition) {
+          a;
+        }
+        else {
+          b;
+        }
+        c;
+    \end{verbatim}
+    \end{minipage}%
+    \begin{minipage}{0.5\textwidth}
+    \begin{verbatim}
+        if (condition) {
+          a;
+          c;
+        }
+        else {
+          b;
+          c;
+        }
+    \end{verbatim}
+    \end{minipage}
+    This is especially useful when an array index variable potentially points to many different locations verifying local invariants (requiring usually complex and costly custom relational domains).
+\end{frame}
+
+\section{Driver Modeling}
+
+\subsection{Asynchronous Behaviour Modeling}
+\begin{frame}{Driver/Program Asynchronous Modeling}
+  We consider the interactions of the controller and driver program a sequence $p_1a^*p_2a^*p_3a^*...$, where $p_i$ are the atomic steps of execution of the main program,
+  and $a$ steps are the non-deterministic actions of the controller.
+
+  We \textbf{ignore} the sequences that do not interfere: all we are interested are the $p_1a^*p_2a^*p_3a^*$ where $a^*$ precedes a $p_i$ that \textbf{reads or writes} into
+  shared memory.
+\end{frame}
+
+\section{Results}
+
+\subsection{Final Abstract Interpreter}
+\begin{frame}{Abstract Interpretation Results}
+  With the extensions, the analyzer is able to detect:
+  \begin{itemize}
+  \item Out of bounds memory accesses
+  \item Null pointer issues and invalid pointer dereferencing
+  \item Invalid pointer arithmetic
+  \item Arithmetic issues - overflow, 0-division, etc..
+  \end{itemize}
+  \begin{exampleblock}{End result}
+    The extended analyzer is able to prove correct (free of runtime errors) the USB 1.1 device driver used by the author, even in the presence of the ``done queue''.
+  \end{exampleblock}
+\end{frame}
+
+\subsection{Limitations}
+\begin{frame}{Limitations and Caveats}
+  \begin{itemize}
+  \item Code alterations:
+    \begin{itemize}
+    \item \texttt{goto} instructions were removed to achieve better precision.
+    \item Padding in some data structures caused Astrée to allocate sufficient unneeded variables as to impact performance.
+    \end{itemize}
+  \item Loss of precision in data bit length because of the ``done queue'' confusing 16 bit FD for 32 bit FD
+  \item Bitmap troubles: OHCI specification sometimes orders information storage in the 2 lowest-order bits of pointers that are supposed to be aligned in 4-byte stripes.
+  \item The deeply nested \textit{Endpoint Descriptor} data model, when active in the driver, caused the analyzer to run over 100 times slower (6 minutes with the ``done queue'' disabled against 10 hours with it enabled)
+  \end{itemize}
+\end{frame}
+
+\section{Conclusion}
+
+\subsection{Related Work}
+\begin{frame}{Related Work}
+  \begin{itemize}
+  \item ``Bug-finding'' techniques (, ad-hoc techniques for Linux/BSD kernels)
+    \begin{itemize}
+    \item Microsoft SLAM group - model checking of boolean abstractions: begin with a boolean control-flow abstraction of the program, then refine it.
+    \item Ad-hoc techniques with Linux and OpenBSD kernels - statistical analysis, attempting detection of incorrect or inconsistent usage, etc..
+    \end{itemize}
+  \item ``Doomed'' approaches for device drivers advocating a language change:
+    \begin{itemize}
+    \item ``Safe'' subset of C (MISRA-C)
+    \item Type-safe languages (CCured)
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\subsection{Objectives achieved}
+\begin{frame}{Conclusion}
+  \begin{exampleblock}{End result}
+    A verification tool for proving the absence of runtime errors in a \textbf{critical} device driver.
+    \begin{itemize}
+    \item Some compromises are acceptable, like ignoring unneeded features (hotswapping, plug-and-play, etc..)
+    \item Some compromises are natural, like using mostly static allocation in a system where the components (hardware and software) are known.
+    \item Some future work on the efficiency of this approach is desirable
+      \begin{itemize}
+      \item through limiting the use of Dynamic State Partitioning
+      \item through a better pointer abstract domain, enabling better handling of complex dynamic structures
+      \end{itemize}
+    \end{itemize}
+  \end{exampleblock}
+  \begin{alertblock}{No generic solution}
+    No one-size-fits-all solution! This specific driver's proof required iterative changes to existing abstract interpreters before being possible in a single pass.
+  \end{alertblock}
+\end{frame}
+
+\end{document}

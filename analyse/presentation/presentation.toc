@@ -1,0 +1,16 @@
+\beamer@endinputifotherversion {3.33pt}
+\beamer@sectionintoc {1}{Article background}{3}{0}{1}
+\beamer@subsectionintoc {1}{1}{Device drivers and critical systems}{3}{0}{1}
+\beamer@subsectionintoc {1}{2}{Challenges involved}{4}{0}{1}
+\beamer@sectionintoc {2}{Implementation}{5}{0}{2}
+\beamer@subsectionintoc {2}{1}{Objectives}{5}{0}{2}
+\beamer@subsectionintoc {2}{2}{Abstract Interpretation}{6}{0}{2}
+\beamer@subsectionintoc {2}{3}{A perk of using Astr\IeC {\'e}e: Dynamic State Partitioning}{7}{0}{2}
+\beamer@sectionintoc {3}{Driver Modeling}{8}{0}{3}
+\beamer@subsectionintoc {3}{1}{Asynchronous Behaviour Modeling}{8}{0}{3}
+\beamer@sectionintoc {4}{Results}{9}{0}{4}
+\beamer@subsectionintoc {4}{1}{Final Abstract Interpreter}{9}{0}{4}
+\beamer@subsectionintoc {4}{2}{Limitations}{10}{0}{4}
+\beamer@sectionintoc {5}{Conclusion}{11}{0}{5}
+\beamer@subsectionintoc {5}{1}{Related Work}{11}{0}{5}
+\beamer@subsectionintoc {5}{2}{Objectives achieved}{12}{0}{5}
