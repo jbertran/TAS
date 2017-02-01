@@ -111,7 +111,6 @@ module Interprete(D : DOMAIN) =
            in
            let cmp = if r then cmp else inv cmp in
            D.compare a e1 cmp e2
-
       in
       doit a e r
 
@@ -172,10 +171,13 @@ module Interprete(D : DOMAIN) =
 
         | AST_assert e ->
            (* to be sound, we return the argument unchanged *)
-           let cond = not (D.is_bottom (filter a e false)) in (*  cépassa  *)
-           if cond then
-             Format.printf "Assertion error at %s\n" (string_of_extent ext);
-           a
+           let true_case  = filter a e true
+           and false_case = filter a e false in
+           (if not (D.is_bottom false_case) then
+             Format.printf "False: Assertion error at %s\n" (string_of_extent ext)
+           else if D.is_bottom true_case then
+             Format.printf "True: Assertion error at %s\n" (string_of_extent ext));
+           true_case
 
         | AST_print l ->
            (* print the current abstract environment *)

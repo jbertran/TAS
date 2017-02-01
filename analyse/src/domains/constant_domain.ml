@@ -4,17 +4,17 @@
   Antoine Miné 2015
 *)
 
-(* 
+(*
    The constant domain
  *)
 
 open Abstract_syntax_tree
 open Value_domain
 
-  
+
 module Constants = (struct
 
-  
+
   (* types *)
   (* ***** *)
 
@@ -40,10 +40,10 @@ module Constants = (struct
   (* lift binary arithmetic operations *)
   let lift2 f x y =
     match x,y with
-    | BOT,_ | _,BOT -> BOT
-    | TOP,_ | _,TOP -> TOP
+    | BOT, _ | _, BOT -> BOT
+    | TOP, _ | _, TOP -> TOP
     | Cst a, Cst b -> Cst (f a b)
-          
+
 
 
   (* interface implementation *)
@@ -61,10 +61,9 @@ module Constants = (struct
 
   (* interval *)
   let rand x y =
-    if x=y then Cst x 
-    else if x<y then TOP
+    if x = y then Cst x
+    else if x < y then TOP
     else BOT
-
 
   (* arithmetic operations *)
 
@@ -74,7 +73,10 @@ module Constants = (struct
 
   let sub = lift2 Z.sub
 
-  let mul = lift2 Z.mul
+  let mul a b =
+    match a, b with
+    | _, Cst x | Cst x, _ when x = Z.zero -> (Cst Z.zero)
+    | _, _ -> lift2 Z.mul a b
 
   let mdl = lift2 Z.rem
 
@@ -84,7 +86,7 @@ module Constants = (struct
 
 
   (* set-theoretic operations *)
-  
+
   let join a b = match a,b with
   | BOT,x | x,BOT -> x
   | Cst x, Cst y when x=y -> a
@@ -103,18 +105,27 @@ module Constants = (struct
   (* comparison operations (filters) *)
 
   let eq a b =
-    (* this is not very precise, how can we improve it ? *)
-    a, b
+  match a, b with
+  | BOT, _ | _, BOT -> BOT, BOT
+  | Cst x, Cst y -> if x = y then a, b else BOT, BOT
+  | TOP, _ | _, TOP -> a, b
 
   let neq a b =
-    a, b
-      
-  let geq a b =
-    a, b
-      
-  let gt a b =
-    a, b
+  match a, b with
+  | BOT, _ | _, BOT -> BOT, BOT
+  | Cst x, Cst y -> if x <> y then a, b else BOT, BOT
+  | TOP, _ | _, TOP -> a, b
 
+  let geq a b =
+  match a, b with
+  | BOT, _ | _, BOT -> BOT, BOT
+  | Cst x, Cst y -> if x >= y then a, b else BOT, BOT
+  | TOP, _ | _, TOP -> a, b
+
+  let gt a b = match a, b with
+  | BOT, _ | _, BOT -> BOT, BOT
+  | Cst x, Cst y -> if x > y then a, b else BOT, BOT
+  | TOP, _ | _, TOP -> a, b
 
   (* subset inclusion of concretizations *)
   let subset a b = match a,b with
@@ -124,7 +135,7 @@ module Constants = (struct
 
   (* check the emptyness of the concretization *)
   let is_bottom a =
-    a=BOT
+    a = BOT
 
   (* prints abstract element *)
   let print fmt x = match x with
@@ -134,7 +145,7 @@ module Constants = (struct
 
 
   (* operator dispatch *)
-        
+
   let unary x op = match op with
   | AST_UNARY_PLUS  -> x
   | AST_UNARY_MINUS -> neg x
@@ -151,38 +162,35 @@ module Constants = (struct
   | AST_NOT_EQUAL     -> neq x y
   | AST_GREATER_EQUAL -> geq x y
   | AST_GREATER       -> gt x y
-  | AST_LESS_EQUAL    -> let y',x' = geq y x in x',y'
+  | AST_LESS_EQUAL    -> let y', x' = geq y x in x', y'
   | AST_LESS          -> let y',x' = gt y x in x',y'
-        
+
 
 
   let bwd_unary x op r = match op with
   | AST_UNARY_PLUS  -> meet x r
   | AST_UNARY_MINUS -> meet x (neg r)
 
-        
+
   let bwd_binary x y op r = match op with
 
   | AST_PLUS ->
-      (* r=x+y => x=r-y and y=r-x *)      
+      (* r=x+y => x=r-y and y=r-x *)
       meet x (sub r y), meet y (sub r x)
 
   | AST_MINUS ->
       (* r=x-y => x=y+r and y=x-r *)
       meet x (add y r), meet y (sub y r)
-        
+
   | AST_MULTIPLY ->
       (* r=x*y => (x=r/y or y=r=0) and (y=r/x or x=r=0)  *)
       let contains_zero o = subset (const Z.zero) o in
       (if contains_zero y && contains_zero r then x else meet x (div r y)),
       (if contains_zero x && contains_zero r then y else meet y (div r x))
-        
+
   | AST_DIVIDE ->
-      (* this is sound, but not precise *)
-      x, y
+      meet x (mul r y), meet y (mul r x)
   | AST_MODULO ->
      meet x (add (div x y) r), meet y (add (div x y) r)
-      
-end : VALUE_DOMAIN)
 
-    
+end : VALUE_DOMAIN)

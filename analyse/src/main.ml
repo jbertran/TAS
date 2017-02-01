@@ -7,19 +7,23 @@
 
 module ConcreteAnalysis =
   Interpreter.Interprete(Concrete_domain.Concrete)
-    
+
 module ConstantAnalysis =
   Interpreter.Interprete
     (Non_relational_domain.NonRelational
        (Constant_domain.Constants))
-    
+
+module IntervalAnalysis =
+  Interpreter.Interprete
+    (Non_relational_domain.NonRelational
+      (Interval_domain.Interval))
 
 (* parse and print filename *)
 let doit filename =
   let prog = File_parser.parse_file filename in
   Abstract_syntax_printer.print_prog Format.std_formatter prog
 
-    
+
 (* default action: print back the source *)
 let eval_prog prog =
   Abstract_syntax_printer.print_prog Format.std_formatter prog
@@ -32,8 +36,11 @@ let main () =
   Arg.parse
     (* handle options *)
     ["-trace", Arg.Set Interpreter.trace, "";
-     "-concrete", Arg.Unit (fun () -> action := ConcreteAnalysis.eval_prog),"";
-     "-constant", Arg.Unit (fun () -> action := ConstantAnalysis.eval_prog),"";
+     "-concrete", Arg.Unit (fun () -> action := ConcreteAnalysis.eval_prog), "";
+     "-constant", Arg.Unit (fun () -> action := ConstantAnalysis.eval_prog), "";
+     "-interval", Arg.Unit (fun () -> action := IntervalAnalysis.eval_prog), "";
+     "-delay",  Arg.Set_int Interpreter.widen_delay,    "";
+     "-unroll", Arg.Set_int Interpreter.loop_unrolling, "";
    ]
     (* handle filenames *)
     (fun filename -> files := (!files)@[filename])
@@ -44,5 +51,5 @@ let main () =
       !action prog
     )
     !files
-    
+
 let _ = main ()
